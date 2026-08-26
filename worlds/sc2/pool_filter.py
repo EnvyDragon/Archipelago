@@ -364,7 +364,7 @@ class ValidInventory:
             raise Exception(f"Too many items excluded - couldn't satisfy access rules for the following locations:\n{failed_locations}")
 
         # Request a level of each w/a upgrade level
-        reserved_upgrades: dict[int, int] = {}
+        reserved_upgrades: dict[int | None, int] = {}
         UPGRADE_LEVELS_TO_RESERVE = 2
         for item in inventory:
             if (not (ItemFilterFlags.RequestedOrBetter & item.filter_flags)

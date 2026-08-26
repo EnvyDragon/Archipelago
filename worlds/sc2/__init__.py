@@ -49,7 +49,7 @@ from .pool_filter import filter_items
 from .mission_tables import SC2Campaign, SC2Mission, SC2Race, MissionFlag
 from .tables import HeroFlag
 from .regions import create_mission_order
-from .mission_order import SC2MissionOrder
+from .mission_order.mission_order import SC2MissionOrder
 from worlds.LauncherComponents import components, Component, launch as launch_component
 from .presets import sc2_options_presets
 
