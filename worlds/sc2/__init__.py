@@ -254,9 +254,10 @@ class SC2World(World):
         setup_events(self.player, self.locked_locations, self.location_cache)
         set_up_filler_items_distribution(self)
         item_list: list[FilterItem] = create_and_flag_explicit_item_locks_and_excludes(self)
+        indexed_item_list: dict[str, FilterItem] = {filter_item.name: filter_item for filter_item in item_list}
         flag_excludes_by_faction_presence(self, item_list)
         flag_mission_based_item_excludes(self, item_list)
-        flag_allowed_orphan_items(self, item_list)
+        flag_allowed_orphan_items(self, indexed_item_list)
         flag_start_inventory(self, item_list)
         flag_unused_upgrade_types(self, item_list)
         flag_unreleased_items(item_list)
@@ -791,42 +792,58 @@ def flag_mission_based_item_excludes(world: SC2World, item_list: list[FilterItem
     return
 
 
-def flag_allowed_orphan_items(world: SC2World, item_list: list[FilterItem]) -> None:
+def flag_allowed_orphan_items(world: SC2World, item_list: dict[str, FilterItem]) -> None:
     """Adds the `Allowed_Orphan` flag to items that shouldn't be filtered with their parents, like combat shield"""
     missions = world.custom_mission_order.get_used_missions()
+    MAX_ORPHAN_TERRAN_ITEMS = 4
+    terran_candidate_items: set[str] = set()
     if SC2Mission.PIERCING_OF_THE_SHROUD in missions:
-        for item in item_list:
-            if item.name in (
-                    item_names.MARINE_COMBAT_SHIELD,
-                    item_names.MARINE_STIMPACK,
-                    item_names.MARINE_MEDPACK,
-                    item_names.MARINE_MAGRAIL_MUNITIONS,
-                    item_names.MEDIC_STABILIZER_MEDPACKS,
-                    item_names.MARINE_LASER_TARGETING_SYSTEM,
-            ):
-                item.flags |= ItemFilterFlags.AllowedOrphan
-                item.flags &= ~ItemFilterFlags.FilterExcluded
+        for item_name in (
+            item_names.MARINE_COMBAT_SHIELD,
+            item_names.MARINE_STIMPACK,
+            item_names.MARINE_MEDPACK,
+            item_names.MARINE_MAGRAIL_MUNITIONS,
+            item_names.MEDIC_STABILIZER_MEDPACKS,
+            item_names.MARINE_LASER_TARGETING_SYSTEM,
+        ):
+            item = item_list.get(item_name)
+            if item is not None and ItemFilterFlags.UserExcluded not in item.flags:
+                terran_candidate_items.add(item_name)
     # These rules only trigger on Standard tactics
     if SC2Mission.BELLY_OF_THE_BEAST in missions and world.options.required_tactics == RequiredTactics.option_basic:
-        for item in item_list:
-            if item.name in (
-                    item_names.MARINE_COMBAT_SHIELD,
-                    item_names.MARINE_STIMPACK,
-                    item_names.MARINE_MEDPACK,
-                    item_names.MARINE_MAGRAIL_MUNITIONS,
-                    item_names.MEDIC_STABILIZER_MEDPACKS,
-                    item_names.MARINE_LASER_TARGETING_SYSTEM,
-                    item_names.FIREBAT_NANO_PROJECTORS,
-                    item_names.FIREBAT_JUGGERNAUT_PLATING,
-                    item_names.FIREBAT_STIMPACK,
-                    item_names.FIREBAT_MEDPACK,
-            ):
-                item.flags |= ItemFilterFlags.AllowedOrphan
-                item.flags &= ~ItemFilterFlags.FilterExcluded
+        for item_name in (
+            item_names.MARINE_COMBAT_SHIELD,
+            item_names.MARINE_STIMPACK,
+            item_names.MARINE_MEDPACK,
+            item_names.MARINE_MAGRAIL_MUNITIONS,
+            item_names.MEDIC_STABILIZER_MEDPACKS,
+            item_names.MARINE_LASER_TARGETING_SYSTEM,
+            item_names.FIREBAT_NANO_PROJECTORS,
+            item_names.FIREBAT_JUGGERNAUT_PLATING,
+            item_names.FIREBAT_STIMPACK,
+            item_names.FIREBAT_MEDPACK,
+        ):
+            item = item_list.get(item_name)
+            if item is not None and ItemFilterFlags.UserExcluded not in item.flags:
+                terran_candidate_items.add(item_name)
+    if terran_candidate_items:
+        sorted_items = sorted(terran_candidate_items)
+        world.random.shuffle(sorted_items)
+        for item_name in sorted_items[:MAX_ORPHAN_TERRAN_ITEMS]:
+            item = item_list[item_name]
+            item.flags |= ItemFilterFlags.AllowedOrphan
+            item.flags &= ~ItemFilterFlags.FilterExcluded
     if SC2Mission.EVIL_AWOKEN in missions and world.options.required_tactics == RequiredTactics.option_basic:
-        for item in item_list:
-            if item.name in (item_names.STALKER_PHASE_REACTOR, item_names.STALKER_DISINTEGRATING_PARTICLES, item_names.STALKER_PARTICLE_REFLECTION):
-                item.flags |= ItemFilterFlags.AllowedOrphan
+        for item_name in (
+            item_names.STALKER_PHASE_REACTOR,
+            item_names.STALKER_DISINTEGRATING_PARTICLES,
+            item_names.STALKER_PARTICLE_REFLECTION,
+        ):
+            item = item_list.get(item_name)
+            if item is None:
+                continue
+            item.flags |= ItemFilterFlags.AllowedOrphan
+            item.flags &= ~ItemFilterFlags.FilterExcluded
 
 
 def flag_start_inventory(world: SC2World, item_list: list[FilterItem]) -> None:

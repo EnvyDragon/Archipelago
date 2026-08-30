@@ -810,17 +810,20 @@ class SC2Logic:
                 item_names.MARINE,
                 item_names.DOMINION_TROOPER,
                 item_names.FIREBAT,
+                item_names.HERC,
                 item_names.MARAUDER,
                 item_names.REAPER,
                 item_names.HELLION,
+                item_names.VULTURE,
             ), self.player)
             or (
                 self.advanced_tactics
                 and state.has_any((
                     item_names.GOLIATH,
                     item_names.DIAMONDBACK,
+                    item_names.CYCLONE,
+                    item_names.SIEGE_TANK,
                     item_names.VIKING,
-                    item_names.BANSHEE,
                 ), self.player)
             )
         )
